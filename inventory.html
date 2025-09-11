@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Inventory Tracker</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #999;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🛒 My Shop Inventory</h2>
+
+  <label>Product Name: <input type="text" id="productName"></label>
+  <label>Price: <input type="number" id="productPrice" step="0.01"></label>
+  <label>Quantity: <input type="number" id="productQty"></label>
+  <button onclick="addProduct()">Add Product</button>
+
+  <table id="productTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Qty</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Products will appear here -->
+    </tbody>
+  </table>
+
+  <script>
+    let productCount = 0;
+
+    function addProduct() {
+      const name = document.getElementById('productName').value;
+      const price = document.getElementById('productPrice').value;
+      const qty = document.getElementById('productQty').value;
+
+      if (!name || !price || !qty) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      productCount++;
+      const table = document.getElementById('productTable').getElementsByTagName('tbody')[0];
+      const row = table.insertRow();
+
+      row.innerHTML = `
+        <td>${productCount}</td>
+        <td>${name}</td>
+        <td>${parseFloat(price).toFixed(2)}</td>
+        <td>${qty}</td>
+      `;
+
+      // Clear input
+      document.getElementById('productName').value = "";
+      document.getElementById('productPrice').value = "";
+      document.getElementById('productQty').value = "";
+    }
+  </script>
+
+</body>
+</html>
