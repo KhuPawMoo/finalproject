@@ -5,6 +5,7 @@ import {
   bulkPutSaleItems,
   bulkPutSales,
   bulkPutStockMovements,
+  clearOperationalData,
   deleteMutation,
   getMeta,
   getMutations,
@@ -16,6 +17,7 @@ import { Mutation, SyncConflict } from "../types";
 
 const CLIENT_ID_KEY = "inventory.clientId";
 const LAST_SYNC_KEY = "inventory.lastSyncAt";
+const RESET_AT_KEY = "inventory.resetAt";
 
 function getClientId(): string {
   const existing = localStorage.getItem(CLIENT_ID_KEY);
@@ -50,11 +52,13 @@ export async function syncNow() {
 
   const clientId = getClientId();
   const lastSyncAt = (await getMeta<string>(LAST_SYNC_KEY)) ?? undefined;
+  const localResetAt = (await getMeta<string>(RESET_AT_KEY)) ?? undefined;
   const mutations = (await getMutations()).sort((a, b) => a.updatedAt - b.updatedAt);
 
   try {
     const response = await apiFetch<{
       serverTime: string;
+      resetAt: string | null;
       appliedIds: string[];
       conflicts: SyncConflict[];
       changes: {
@@ -73,8 +77,16 @@ export async function syncNow() {
       })
     });
 
+    if (response.resetAt && response.resetAt !== localResetAt) {
+      await clearOperationalData();
+      await setMeta(RESET_AT_KEY, response.resetAt);
+    }
+
     await applyServerChanges(response.changes);
     await setMeta(LAST_SYNC_KEY, response.serverTime);
+    if (response.resetAt) {
+      await setMeta(RESET_AT_KEY, response.resetAt);
+    }
 
     for (const id of response.appliedIds) {
       await deleteMutation(id);

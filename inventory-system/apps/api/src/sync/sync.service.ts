@@ -38,9 +38,13 @@ export class SyncService {
 
     const since = payload.lastSyncAt ? new Date(payload.lastSyncAt) : new Date(0);
     const changes = await this.getChangesSince(since);
+    const latestReset = await this.prisma.resetEvent.findFirst({
+      orderBy: { createdAt: "desc" }
+    });
 
     return {
       serverTime: new Date().toISOString(),
+      resetAt: latestReset?.createdAt.toISOString() ?? null,
       appliedIds,
       conflicts,
       changes

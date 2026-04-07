@@ -289,6 +289,17 @@ select {
   color: var(--warn);
 }
 
+.danger-zone {
+  border-color: rgba(139, 74, 45, 0.32);
+  background:
+    linear-gradient(135deg, rgba(139, 74, 45, 0.06), rgba(255, 252, 247, 0.9));
+}
+
+.danger-button {
+  border-color: rgba(139, 74, 45, 0.32);
+  color: var(--warn);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

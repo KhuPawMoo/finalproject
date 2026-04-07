@@ -43,6 +43,22 @@ export async function createUser(input: {
   });
 }
 
+export async function resetSystemData() {
+  return apiFetch<{
+    resetAt: string;
+    deleted: {
+      sales: number;
+      saleItems: number;
+      stockMovements: number;
+      inventory: number;
+      products: number;
+      users: number;
+    };
+  }>("/admin/reset-data", {
+    method: "POST"
+  });
+}
+
 export async function fetchReportSummary(from: string, to: string) {
   const params = new URLSearchParams({ from, to });
   return apiFetch<ReportSummary>("/reports/summary?" + params.toString());

@@ -161,3 +161,24 @@ export async function bulkPutStockMovements(items: StockMovement[]) {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+export async function clearOperationalData() {
+  const db = await openDB();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(
+      ["products", "inventory", "sales", "saleItems", "stockMovements", "mutations", "meta"],
+      "readwrite"
+    );
+
+    tx.objectStore("products").clear();
+    tx.objectStore("inventory").clear();
+    tx.objectStore("sales").clear();
+    tx.objectStore("saleItems").clear();
+    tx.objectStore("stockMovements").clear();
+    tx.objectStore("mutations").clear();
+    tx.objectStore("meta").clear();
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}

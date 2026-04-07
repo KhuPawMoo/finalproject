@@ -1,9 +1,7 @@
 import React, { useMemo, useState } from "react";
+import { formatMoney } from "../lib/currency";
 import { archiveProductLocal, Snapshot, upsertProductLocal } from "../lib/data";
 import { Inventory, Product, SyncConflict } from "../types";
-
-const formatMoney = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
 type InventoryPageProps = {
   snapshot: Snapshot;

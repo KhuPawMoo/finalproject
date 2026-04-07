@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { fetchReportSummary, fetchTimeseries } from "../lib/auth";
+import { formatMoney } from "../lib/currency";
 import { Snapshot } from "../lib/data";
 import { summarizeSnapshot } from "../lib/reports";
 import { ReportSummary, SyncConflict, TimeseriesPoint } from "../types";
-
-const formatMoney = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
 type ReportsPageProps = {
   snapshot: Snapshot;

@@ -1,9 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { formatMoney } from "../lib/currency";
 import { recordSaleLocal, Snapshot } from "../lib/data";
 import { Product, Session } from "../types";
-
-const formatMoney = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
 type CartItem = {
   product: Product;

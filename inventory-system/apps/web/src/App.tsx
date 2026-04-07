@@ -5,6 +5,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import ReportsPage from "./pages/ReportsPage";
 import AuthPage from "./pages/AuthPage";
 import { loadSnapshot, Snapshot } from "./lib/data";
+import { clearOperationalData } from "./lib/db";
 import { syncNow } from "./lib/sync";
 import { clearSession, getSession, saveSession } from "./lib/session";
 import { fetchCurrentUser, fetchSetupStatus } from "./lib/auth";
@@ -178,6 +179,13 @@ export default function App() {
     setSyncStatus("idle");
   };
 
+  const handleSystemReset = async () => {
+    await clearOperationalData();
+    setSyncConflicts([]);
+    setSyncStatus("idle");
+    await refresh();
+  };
+
   const navigate = (next: Page) => {
     window.location.hash = next;
   };
@@ -237,6 +245,7 @@ export default function App() {
           session={session}
           online={isOnline}
           syncConflicts={syncConflicts}
+          onSystemReset={handleSystemReset}
         />
       )}
       {page === "inventory" && session.user.role === "ADMIN" && (

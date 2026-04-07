@@ -1,24 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { createUser, fetchUsers } from "../lib/auth";
+import { createUser, fetchUsers, resetSystemData } from "../lib/auth";
+import { formatMoney } from "../lib/currency";
 import { Snapshot } from "../lib/data";
 import { rollingTotals } from "../lib/reports";
 import { Session, SyncConflict, User, UserRole } from "../types";
-
-const formatMoney = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
 type DashboardPageProps = {
   snapshot: Snapshot;
   session: Session;
   online: boolean;
   syncConflicts: SyncConflict[];
+  onSystemReset: () => Promise<void>;
 };
 
-export default function DashboardPage({ snapshot, session, online, syncConflicts }: DashboardPageProps) {
+export default function DashboardPage({ snapshot, session, online, syncConflicts, onSystemReset }: DashboardPageProps) {
   const totals = rollingTotals(snapshot);
   const lowStockCount = snapshot.inventory.filter(item => item.quantity <= item.reorderLevel).length;
   const [team, setTeam] = useState<User[]>([]);
   const [teamStatus, setTeamStatus] = useState("");
+  const [resetStatus, setResetStatus] = useState("");
+  const [resetting, setResetting] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -65,6 +66,34 @@ export default function DashboardPage({ snapshot, session, online, syncConflicts
       setTeamStatus("Team member created.");
     } catch (error) {
       setTeamStatus(error instanceof Error ? error.message : "Unable to create user");
+    }
+  };
+
+  const handleResetSystem = async () => {
+    if (!online) {
+      setResetStatus("Reconnect to the internet before resetting the synced system.");
+      return;
+    }
+
+    const confirmed = confirm("Reset all test data? This removes products, inventory, sales, and staff accounts.");
+    if (!confirmed) {
+      return;
+    }
+
+    setResetting(true);
+    setResetStatus("");
+
+    try {
+      const result = await resetSystemData();
+      await onSystemReset();
+      setTeam(team.filter(user => user.id === session.user.id));
+      setResetStatus(
+        `System reset complete. Removed ${result.deleted.products} products and ${result.deleted.sales} sales.`
+      );
+    } catch (error) {
+      setResetStatus(error instanceof Error ? error.message : "Unable to reset system data");
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -207,6 +236,25 @@ export default function DashboardPage({ snapshot, session, online, syncConflicts
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {session.user.role === "ADMIN" && (
+        <div className="section danger-zone">
+          <div className="section-head">
+            <h3>Danger Zone</h3>
+            <span className="pill danger">Testing only</span>
+          </div>
+          <p className="muted">
+            Use this before handing the system to the real shop owner. It wipes products, stock, sales, sync queue,
+            and staff users, then other devices will clear on their next sync.
+          </p>
+          <div className="action-row">
+            <button className="secondary danger-button" type="button" onClick={handleResetSystem} disabled={resetting}>
+              {resetting ? "Resetting..." : "Reset System Data"}
+            </button>
+            {resetStatus && <span className="muted">{resetStatus}</span>}
           </div>
         </div>
       )}
