@@ -3,13 +3,14 @@ import {
   getAllProducts,
   getAllSaleItems,
   getAllSales,
+  getAllStockMovements,
   getInventoryByProduct,
+  getProductById,
   putInventory,
   putProduct,
   putSale,
   putSaleItem,
-  putStockMovement,
-  deleteProduct
+  putStockMovement
 } from "./db";
 import { queueMutation } from "./sync";
 import { Inventory, Product, Sale, SaleItem, StockMovement } from "../types";
@@ -19,16 +20,19 @@ export type Snapshot = {
   inventory: Inventory[];
   sales: Sale[];
   saleItems: SaleItem[];
+  stockMovements: StockMovement[];
 };
 
 export async function loadSnapshot(): Promise<Snapshot> {
-  const [products, inventory, sales, saleItems] = await Promise.all([
+  const [products, inventory, sales, saleItems, stockMovements] = await Promise.all([
     getAllProducts(),
     getAllInventory(),
     getAllSales(),
-    getAllSaleItems()
+    getAllSaleItems(),
+    getAllStockMovements()
   ]);
-  return { products, inventory, sales, saleItems };
+
+  return { products, inventory, sales, saleItems, stockMovements };
 }
 
 export async function upsertProductLocal(input: {
@@ -39,6 +43,8 @@ export async function upsertProductLocal(input: {
   category?: string | null;
   quantity: number;
   reorderLevel: number;
+  createdAt?: string;
+  baseInventoryUpdatedAt?: string;
 }) {
   const now = new Date().toISOString();
   const product: Product = {
@@ -48,6 +54,7 @@ export async function upsertProductLocal(input: {
     price: input.price,
     category: input.category,
     active: true,
+    createdAt: input.createdAt ?? now,
     updatedAt: now
   };
 
@@ -64,27 +71,38 @@ export async function upsertProductLocal(input: {
   await queueMutation({
     table: "products",
     op: "upsert",
-    row: product,
-    updatedAt: Date.now()
+    row: product
   });
 
   await queueMutation({
     table: "inventory",
     op: "upsert",
-    row: inventory,
-    updatedAt: Date.now()
+    row: {
+      ...inventory,
+      baseUpdatedAt: input.baseInventoryUpdatedAt
+    }
   });
 
   return { product, inventory };
 }
 
 export async function archiveProductLocal(productId: string) {
-  await deleteProduct(productId);
+  const existing = await getProductById(productId);
+  if (!existing) {
+    return;
+  }
+
+  const archivedProduct: Product = {
+    ...existing,
+    active: false,
+    updatedAt: new Date().toISOString()
+  };
+
+  await putProduct(archivedProduct);
   await queueMutation({
     table: "products",
     op: "upsert",
-    row: { id: productId, active: false, updatedAt: new Date().toISOString() },
-    updatedAt: Date.now()
+    row: archivedProduct
   });
 }
 
@@ -103,6 +121,15 @@ export async function recordSaleLocal(input: {
     quantity: item.quantity,
     unitPrice: item.unitPrice,
     lineTotal: item.quantity * item.unitPrice
+  }));
+
+  const stockMovements: StockMovement[] = input.items.map(item => ({
+    id: crypto.randomUUID(),
+    productId: item.productId,
+    userId: input.userId,
+    delta: -item.quantity,
+    reason: "SALE",
+    createdAt: now
   }));
 
   const total = lineItems.reduce((sum, item) => sum + item.lineTotal, 0);
@@ -132,29 +159,17 @@ export async function recordSaleLocal(input: {
       updatedAt: now
     };
     await putInventory(updated);
+  }
 
-    const movement: StockMovement = {
-      id: crypto.randomUUID(),
-      productId: item.productId,
-      userId: input.userId,
-      delta: -item.quantity,
-      reason: "SALE",
-      createdAt: now
-    };
+  for (const movement of stockMovements) {
     await putStockMovement(movement);
-
-    await queueMutation({
-      table: "stock_movements",
-      op: "insert",
-      row: movement
-    });
   }
 
   await queueMutation({
     table: "sales",
     op: "insert",
-    row: { sale, items: lineItems }
+    row: { sale, items: lineItems, stockMovements }
   });
 
-  return { sale, items: lineItems };
+  return { sale, items: lineItems, stockMovements };
 }

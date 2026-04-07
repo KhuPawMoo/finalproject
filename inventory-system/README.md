@@ -10,10 +10,12 @@ Offline-first inventory + POS + reports for a small shop. Designed for multi-dev
 ## Quick Start (Local)
 1. Start Postgres and create a database.
 2. In `apps/api`, set `DATABASE_URL` in `.env`.
-3. Install deps and run migrations.
-4. Start API server.
-5. In `apps/web`, set `VITE_API_BASE` (default `http://localhost:3001`).
-6. Start web app.
+3. Set `JWT_SECRET` in `apps/api/.env`.
+4. Install deps and run migrations.
+5. Start API server.
+6. In `apps/web`, set `VITE_API_BASE` (default `http://localhost:3001`).
+7. Start web app.
+8. Open the app and create the first admin account from the setup screen.
 
 ## Notes
 - Service workers and camera scanning require HTTPS or localhost.
@@ -34,6 +36,7 @@ API `.env` example:
 ```
 DATABASE_URL="postgresql://user:pass@localhost:5432/inventory"
 PORT=3001
+JWT_SECRET="change-me"
 ```
 
 Web `.env` example:

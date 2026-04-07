@@ -1,3 +1,4 @@
+import { Transform, Type } from "class-transformer";
 import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Min } from "class-validator";
 
 export class ListProductsQuery {
@@ -10,6 +11,7 @@ export class ListProductsQuery {
   category?: string;
 
   @IsOptional()
+  @Transform(({ value }) => value === true || value === "true")
   @IsBoolean()
   lowOnly?: boolean;
 }
@@ -22,6 +24,7 @@ export class CreateProductDto {
   @IsString()
   barcode?: string;
 
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   price!: number;
@@ -31,11 +34,13 @@ export class CreateProductDto {
   category?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   quantity?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   reorderLevel?: number;
@@ -51,6 +56,7 @@ export class UpdateProductDto {
   barcode?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   price?: number;
@@ -60,11 +66,13 @@ export class UpdateProductDto {
   category?: string;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   quantity?: number;
 
   @IsOptional()
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   reorderLevel?: number;

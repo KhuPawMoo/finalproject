@@ -1,19 +1,39 @@
 import { Injectable } from "@nestjs/common";
-import { Prisma, StockReason } from "@prisma/client";
+import { StockReason } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { AuthenticatedUser } from "../common/roles";
 import { PrismaService } from "../prisma/prisma.service";
 import { MutationDto, SyncRequestDto } from "./sync.dto";
 
+type SyncConflict = {
+  mutationId: string;
+  table: string;
+  reason: string;
+  clientState?: Record<string, unknown>;
+  serverState?: Record<string, unknown>;
+};
+
+type ApplyResult =
+  | { status: "applied" }
+  | { status: "ignored" }
+  | { status: "conflict"; conflict: SyncConflict };
+
 @Injectable()
 export class SyncService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async sync(payload: SyncRequestDto) {
+  async sync(payload: SyncRequestDto, user: AuthenticatedUser) {
     const appliedIds: string[] = [];
+    const conflicts: SyncConflict[] = [];
 
     for (const mutation of payload.mutations) {
-      await this.applyMutation(mutation);
-      appliedIds.push(mutation.id);
+      const result = await this.applyMutation(mutation, user);
+      if (result.status === "applied" || result.status === "ignored") {
+        appliedIds.push(mutation.id);
+      }
+      if (result.status === "conflict") {
+        conflicts.push(result.conflict);
+      }
     }
 
     const since = payload.lastSyncAt ? new Date(payload.lastSyncAt) : new Date(0);
@@ -22,105 +42,174 @@ export class SyncService {
     return {
       serverTime: new Date().toISOString(),
       appliedIds,
+      conflicts,
       changes
     };
   }
 
-  private async applyMutation(mutation: MutationDto) {
-    if (!mutation.row) return;
+  private async applyMutation(mutation: MutationDto, user: AuthenticatedUser): Promise<ApplyResult> {
+    if (!mutation.row) {
+      return { status: "ignored" };
+    }
 
     switch (mutation.table) {
       case "products":
-        return this.upsertProduct(mutation.row);
+        return this.upsertProduct(mutation);
       case "inventory":
-        return this.upsertInventory(mutation.row);
-      case "stock_movements":
-        return this.insertStockMovement(mutation.row);
+        return this.reconcileInventory(mutation, user);
       case "sales":
-        return this.insertSale(mutation.row);
+        return this.insertSale(mutation, user);
       default:
-        return;
+        return { status: "ignored" };
     }
   }
 
-  private async upsertProduct(row: Record<string, unknown>) {
-    const data = row as Prisma.ProductCreateInput & { id?: string; updatedAt?: string };
-    const id = data.id ?? randomUUID();
+  private async upsertProduct(mutation: MutationDto): Promise<ApplyResult> {
+    const row = mutation.row as {
+      id?: string;
+      name?: string;
+      barcode?: string | null;
+      price?: number;
+      category?: string | null;
+      active?: boolean;
+      updatedAt?: string;
+    };
+    const id = row.id ?? randomUUID();
+    const existing = await this.prisma.product.findUnique({
+      where: { id }
+    });
+    const incomingUpdatedAt = row.updatedAt ? new Date(row.updatedAt) : new Date();
 
-    await this.prisma.product.upsert({
-      where: { id },
-      update: {
-        name: data.name,
-        barcode: data.barcode,
-        price: data.price,
-        category: data.category,
-        active: data.active ?? true,
-        updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined
-      },
-      create: {
-        id,
-        name: data.name,
-        barcode: data.barcode,
-        price: data.price,
-        category: data.category,
-        active: data.active ?? true
+    if (!existing) {
+      if (!row.name || row.price === undefined) {
+        return {
+          status: "conflict",
+          conflict: {
+            mutationId: mutation.id,
+            table: mutation.table,
+            reason: "Product creation payload is incomplete",
+            clientState: mutation.row
+          }
+        };
       }
-    });
 
-    await this.prisma.inventory.upsert({
-      where: { productId: id },
-      update: {},
-      create: { productId: id, quantity: 0, reorderLevel: 5 }
-    });
-  }
-
-  private async upsertInventory(row: Record<string, unknown>) {
-    const data = row as { productId: string; quantity: number; reorderLevel?: number; updatedAt?: string };
-
-    await this.prisma.inventory.upsert({
-      where: { productId: data.productId },
-      update: {
-        quantity: data.quantity,
-        reorderLevel: data.reorderLevel ?? 5,
-        updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined
-      },
-      create: {
-        productId: data.productId,
-        quantity: data.quantity,
-        reorderLevel: data.reorderLevel ?? 5
-      }
-    });
-  }
-
-  private async insertStockMovement(row: Record<string, unknown>) {
-    const data = row as { id?: string; productId: string; userId?: string; delta: number; reason?: StockReason; createdAt?: string };
-    const id = data.id ?? randomUUID();
-
-    await this.prisma.$transaction(async trx => {
-      await trx.stockMovement.create({
+      await this.prisma.product.create({
         data: {
           id,
-          productId: data.productId,
-          userId: data.userId,
-          delta: data.delta,
-          reason: data.reason ?? StockReason.ADJUSTMENT,
-          createdAt: data.createdAt ? new Date(data.createdAt) : new Date()
+          name: row.name,
+          barcode: row.barcode,
+          price: row.price,
+          category: row.category,
+          active: row.active ?? true,
+          updatedAt: incomingUpdatedAt
         }
       });
 
-      await trx.inventory.upsert({
-        where: { productId: data.productId },
-        update: { quantity: { increment: data.delta } },
-        create: { productId: data.productId, quantity: data.delta, reorderLevel: 5 }
+      await this.prisma.inventory.upsert({
+        where: { productId: id },
+        update: {},
+        create: { productId: id, quantity: 0, reorderLevel: 5 }
       });
+
+      return { status: "applied" };
+    }
+
+    if (row.updatedAt && existing.updatedAt.getTime() > incomingUpdatedAt.getTime()) {
+      return { status: "ignored" };
+    }
+
+    await this.prisma.product.update({
+      where: { id },
+      data: {
+        name: row.name ?? existing.name,
+        barcode: row.barcode === undefined ? existing.barcode : row.barcode,
+        price: row.price ?? existing.price,
+        category: row.category === undefined ? existing.category : row.category,
+        active: row.active ?? existing.active,
+        updatedAt: incomingUpdatedAt
+      }
     });
+
+    return { status: "applied" };
   }
 
-  private async insertSale(row: Record<string, unknown>) {
-    const data = row as {
+  private async reconcileInventory(mutation: MutationDto, user: AuthenticatedUser): Promise<ApplyResult> {
+    const row = mutation.row as {
+      productId: string;
+      quantity: number;
+      reorderLevel: number;
+      baseUpdatedAt?: string;
+      updatedAt?: string;
+    };
+
+    const current = await this.prisma.inventory.findUnique({
+      where: { productId: row.productId }
+    });
+    const baseUpdatedAt = row.baseUpdatedAt ? new Date(row.baseUpdatedAt) : undefined;
+
+    if (
+      current &&
+      baseUpdatedAt &&
+      current.updatedAt.getTime() > baseUpdatedAt.getTime() &&
+      current.quantity !== row.quantity
+    ) {
+      return {
+        status: "conflict",
+        conflict: {
+          mutationId: mutation.id,
+          table: mutation.table,
+          reason: "Inventory changed on another device before this edit synced",
+          clientState: mutation.row,
+          serverState: {
+            productId: current.productId,
+            quantity: current.quantity,
+            reorderLevel: current.reorderLevel,
+            updatedAt: current.updatedAt.toISOString()
+          }
+        }
+      };
+    }
+
+    const previousQuantity = current?.quantity ?? 0;
+    const delta = row.quantity - previousQuantity;
+
+    await this.prisma.$transaction(async trx => {
+      await trx.inventory.upsert({
+        where: { productId: row.productId },
+        update: {
+          quantity: row.quantity,
+          reorderLevel: row.reorderLevel,
+          updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined
+        },
+        create: {
+          productId: row.productId,
+          quantity: row.quantity,
+          reorderLevel: row.reorderLevel,
+          updatedAt: row.updatedAt ? new Date(row.updatedAt) : undefined
+        }
+      });
+
+      if (delta !== 0) {
+        await trx.stockMovement.create({
+          data: {
+            id: mutation.id,
+            productId: row.productId,
+            userId: user.id,
+            delta,
+            reason: StockReason.ADJUSTMENT,
+            createdAt: row.updatedAt ? new Date(row.updatedAt) : new Date()
+          }
+        });
+      }
+    });
+
+    return { status: "applied" };
+  }
+
+  private async insertSale(mutation: MutationDto, user: AuthenticatedUser): Promise<ApplyResult> {
+    const row = mutation.row as {
       sale: {
         id?: string;
-        userId: string;
         total: number;
         paidAmount: number;
         changeAmount: number;
@@ -133,32 +222,38 @@ export class SyncService {
         unitPrice: number;
         lineTotal: number;
       }>;
+      stockMovements?: Array<{
+        id: string;
+        productId: string;
+        delta: number;
+        createdAt?: string;
+      }>;
     };
+    const saleId = row.sale.id ?? randomUUID();
 
-    const saleId = data.sale.id ?? randomUUID();
+    const existing = await this.prisma.sale.findUnique({
+      where: { id: saleId }
+    });
+    if (existing) {
+      return { status: "ignored" };
+    }
 
     await this.prisma.$transaction(async trx => {
-      await trx.sale.upsert({
-        where: { id: saleId },
-        update: {
-          total: data.sale.total,
-          paidAmount: data.sale.paidAmount,
-          changeAmount: data.sale.changeAmount
-        },
-        create: {
+      await trx.sale.create({
+        data: {
           id: saleId,
-          userId: data.sale.userId,
-          total: data.sale.total,
-          paidAmount: data.sale.paidAmount,
-          changeAmount: data.sale.changeAmount,
+          userId: user.id,
+          total: row.sale.total,
+          paidAmount: row.sale.paidAmount,
+          changeAmount: row.sale.changeAmount,
           paymentMethod: "cash",
-          createdAt: data.sale.createdAt ? new Date(data.sale.createdAt) : new Date()
+          createdAt: row.sale.createdAt ? new Date(row.sale.createdAt) : new Date()
         }
       });
 
-      if (data.items?.length) {
+      if (row.items.length) {
         await trx.saleItem.createMany({
-          data: data.items.map(item => ({
+          data: row.items.map(item => ({
             id: item.id ?? randomUUID(),
             saleId,
             productId: item.productId,
@@ -168,16 +263,40 @@ export class SyncService {
           })),
           skipDuplicates: true
         });
+      }
 
-        for (const item of data.items) {
-          await trx.inventory.upsert({
-            where: { productId: item.productId },
-            update: { quantity: { decrement: item.quantity } },
-            create: { productId: item.productId, quantity: -item.quantity, reorderLevel: 5 }
-          });
-        }
+      const movements = row.stockMovements?.length
+        ? row.stockMovements
+        : row.items.map(item => ({
+            id: item.id ?? randomUUID(),
+            productId: item.productId,
+            delta: -item.quantity,
+            createdAt: row.sale.createdAt
+          }));
+
+      for (const movement of movements) {
+        await trx.stockMovement.create({
+          data: {
+            id: movement.id,
+            productId: movement.productId,
+            userId: user.id,
+            delta: movement.delta,
+            reason: StockReason.SALE,
+            createdAt: movement.createdAt ? new Date(movement.createdAt) : new Date()
+          }
+        });
+      }
+
+      for (const item of row.items) {
+        await trx.inventory.upsert({
+          where: { productId: item.productId },
+          update: { quantity: { decrement: item.quantity } },
+          create: { productId: item.productId, quantity: -item.quantity, reorderLevel: 5 }
+        });
       }
     });
+
+    return { status: "applied" };
   }
 
   private async getChangesSince(since: Date) {
@@ -196,7 +315,7 @@ export class SyncService {
         where: { createdAt: { gt: since } }
       }),
       this.prisma.saleItem.findMany({
-        where: { sale: { createdAt: { gt: since } } }
+        where: { sale: { is: { createdAt: { gt: since } } } }
       })
     ]);
 
@@ -204,13 +323,14 @@ export class SyncService {
       products: products.map(product => ({
         ...product,
         price: Number(product.price),
+        createdAt: product.createdAt.toISOString(),
+        updatedAt: product.updatedAt.toISOString(),
         inventory: product.inventory
           ? {
               ...product.inventory,
               updatedAt: product.inventory.updatedAt.toISOString()
             }
-          : null,
-        updatedAt: product.updatedAt.toISOString()
+          : null
       })),
       inventory: inventory.map(item => ({
         ...item,

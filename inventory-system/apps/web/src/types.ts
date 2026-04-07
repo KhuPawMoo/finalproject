@@ -1,5 +1,18 @@
 export type UserRole = "ADMIN" | "STAFF";
 
+export type User = {
+  id: string;
+  email: string;
+  name?: string | null;
+  role: UserRole;
+  createdAt?: string;
+};
+
+export type Session = {
+  accessToken: string;
+  user: User;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -7,6 +20,7 @@ export type Product = {
   price: number;
   category?: string | null;
   active: boolean;
+  createdAt?: string;
   updatedAt: string;
 };
 
@@ -47,8 +61,39 @@ export type SaleItem = {
 
 export type Mutation = {
   id: string;
-  table: string;
+  table: "products" | "inventory" | "sales";
   op: string;
   row: Record<string, unknown>;
-  updatedAt?: number;
+  updatedAt: number;
+};
+
+export type SyncConflict = {
+  mutationId: string;
+  table: string;
+  reason: string;
+  clientState?: Record<string, unknown>;
+  serverState?: Record<string, unknown>;
+};
+
+export type ReportSummary = {
+  totalSales: number;
+  transactions: number;
+  averageSale: number;
+  bestSellers: Array<{
+    productId: string;
+    productName: string;
+    quantity: number;
+    revenue: number;
+  }>;
+  lowStock: Array<{
+    productId: string;
+    productName: string;
+    quantity: number;
+    reorderLevel: number;
+  }>;
+};
+
+export type TimeseriesPoint = {
+  bucket: string;
+  total: number;
 };

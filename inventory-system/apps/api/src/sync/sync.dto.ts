@@ -1,5 +1,5 @@
-import { IsArray, IsNumber, IsOptional, IsString } from "class-validator";
 import { Type } from "class-transformer";
+import { IsArray, IsNumber, IsObject, IsOptional, IsString, ValidateNested } from "class-validator";
 
 export class MutationDto {
   @IsString()
@@ -12,6 +12,7 @@ export class MutationDto {
   op!: string;
 
   @IsOptional()
+  @IsObject()
   row?: Record<string, unknown>;
 
   @IsOptional()
@@ -28,6 +29,7 @@ export class SyncRequestDto {
   lastSyncAt?: string;
 
   @IsArray()
+  @ValidateNested({ each: true })
   @Type(() => MutationDto)
   mutations!: MutationDto[];
 }

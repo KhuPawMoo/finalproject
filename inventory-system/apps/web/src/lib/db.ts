@@ -50,6 +50,10 @@ export async function getAllSaleItems(): Promise<SaleItem[]> {
   return withStore("saleItems", "readonly", store => store.getAll());
 }
 
+export async function getAllStockMovements(): Promise<StockMovement[]> {
+  return withStore("stockMovements", "readonly", store => store.getAll());
+}
+
 export async function putProduct(product: Product) {
   return withStore("products", "readwrite", store => store.put(product));
 }
@@ -72,6 +76,10 @@ export async function putStockMovement(item: StockMovement) {
 
 export async function deleteProduct(id: string) {
   return withStore("products", "readwrite", store => store.delete(id));
+}
+
+export async function getProductById(id: string): Promise<Product | undefined> {
+  return withStore("products", "readonly", store => store.get(id));
 }
 
 export async function getInventoryByProduct(productId: string): Promise<Inventory | undefined> {

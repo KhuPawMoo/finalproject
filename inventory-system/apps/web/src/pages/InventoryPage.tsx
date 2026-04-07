@@ -1,17 +1,23 @@
 import React, { useMemo, useState } from "react";
 import { archiveProductLocal, Snapshot, upsertProductLocal } from "../lib/data";
-import { Inventory, Product } from "../types";
+import { Inventory, Product, SyncConflict } from "../types";
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 
-export default function InventoryPage({ snapshot, onChange }: { snapshot: Snapshot; onChange: () => void }) {
+type InventoryPageProps = {
+  snapshot: Snapshot;
+  onChange: () => void;
+  syncConflicts: SyncConflict[];
+};
+
+export default function InventoryPage({ snapshot, onChange, syncConflicts }: InventoryPageProps) {
   const { products, inventory } = snapshot;
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [lowOnly, setLowOnly] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-
+  const [status, setStatus] = useState("");
   const [form, setForm] = useState({
     name: "",
     barcode: "",
@@ -27,32 +33,51 @@ export default function InventoryPage({ snapshot, onChange }: { snapshot: Snapsh
     return map;
   }, [inventory]);
 
-  const categories = useMemo(() => {
-    return ["all", ...new Set(products.map(p => p.category).filter(Boolean) as string[])];
-  }, [products]);
+  const categories = useMemo(
+    () => ["all", ...new Set(products.map(product => product.category).filter(Boolean) as string[])],
+    [products]
+  );
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return products.filter(product => {
-      if (!product.active) return false;
+      if (!product.active) {
+        return false;
+      }
+
       const inv = inventoryMap.get(product.id);
-      const matchesSearch = !query ||
+      const matchesSearch =
+        !query ||
         product.name.toLowerCase().includes(query) ||
-        (product.barcode || "").toLowerCase().includes(query);
+        (product.barcode || "").toLowerCase().includes(query) ||
+        (product.category || "").toLowerCase().includes(query);
       const matchesCategory = category === "all" || product.category === category;
-      const matchesLow = !lowOnly || (inv && inv.quantity <= inv.reorderLevel);
+      const matchesLow = !lowOnly || (inv ? inv.quantity <= inv.reorderLevel : false);
+
       return matchesSearch && matchesCategory && matchesLow;
     });
   }, [products, inventoryMap, search, category, lowOnly]);
 
   const resetForm = () => {
     setEditing(null);
-    setForm({ name: "", barcode: "", price: "", category: "", quantity: "", reorderLevel: "" });
+    setForm({
+      name: "",
+      barcode: "",
+      price: "",
+      category: "",
+      quantity: "",
+      reorderLevel: ""
+    });
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) {
+      setStatus("Product name is required.");
+      return;
+    }
+
+    const currentInventory = editing ? inventoryMap.get(editing.id) : undefined;
 
     await upsertProductLocal({
       id: editing?.id,
@@ -61,9 +86,12 @@ export default function InventoryPage({ snapshot, onChange }: { snapshot: Snapsh
       price: Number(form.price || 0),
       category: form.category.trim() || null,
       quantity: Number(form.quantity || 0),
-      reorderLevel: Number(form.reorderLevel || 5)
+      reorderLevel: Number(form.reorderLevel || 5),
+      createdAt: editing?.createdAt,
+      baseInventoryUpdatedAt: currentInventory?.updatedAt
     });
 
+    setStatus(editing ? "Product updated locally. Sync will push it to other devices." : "Product added locally.");
     resetForm();
     onChange();
   };
@@ -81,47 +109,78 @@ export default function InventoryPage({ snapshot, onChange }: { snapshot: Snapsh
     });
   };
 
-  const handleDelete = async (productId: string) => {
-    if (!confirm("Archive this product?")) return;
+  const handleArchive = async (productId: string) => {
+    if (!confirm("Archive this product?")) {
+      return;
+    }
+
     await archiveProductLocal(productId);
+    setStatus("Product archived locally.");
     onChange();
   };
 
   return (
-    <div>
+    <div className="stack">
+      {syncConflicts.length > 0 && (
+        <div className="notice warn">
+          Some inventory edits were not auto-applied because stock changed on another device first. Review the affected
+          products before counting stock again.
+        </div>
+      )}
+
       <div className="section">
-        <h3>{editing ? "Edit Product" : "Add Product"}</h3>
-        <form onSubmit={handleSubmit}>
+        <div className="section-head">
+          <h3>{editing ? "Edit Product" : "Add Product"}</h3>
+          {status && <span className="pill">{status}</span>}
+        </div>
+
+        <form onSubmit={handleSubmit} className="stack">
           <div className="form-grid">
             <div>
               <label>Name</label>
-              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+              <input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} />
             </div>
             <div>
               <label>Barcode</label>
-              <input value={form.barcode} onChange={e => setForm({ ...form, barcode: e.target.value })} />
+              <input value={form.barcode} onChange={event => setForm({ ...form, barcode: event.target.value })} />
             </div>
             <div>
               <label>Price</label>
-              <input type="number" min="0" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.price}
+                onChange={event => setForm({ ...form, price: event.target.value })}
+              />
             </div>
             <div>
               <label>Category</label>
-              <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} />
+              <input value={form.category} onChange={event => setForm({ ...form, category: event.target.value })} />
             </div>
             <div>
               <label>Quantity</label>
-              <input type="number" min="0" step="1" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} />
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.quantity}
+                onChange={event => setForm({ ...form, quantity: event.target.value })}
+              />
             </div>
             <div>
               <label>Reorder Level</label>
-              <input type="number" min="0" step="1" value={form.reorderLevel} onChange={e => setForm({ ...form, reorderLevel: e.target.value })} />
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={form.reorderLevel}
+                onChange={event => setForm({ ...form, reorderLevel: event.target.value })}
+              />
             </div>
           </div>
-          <div className="inline" style={{ marginTop: 12 }}>
-            <button className="primary" type="submit">
-              {editing ? "Save" : "Add"}
-            </button>
+          <div className="action-row">
+            <button className="primary" type="submit">{editing ? "Save Changes" : "Add Product"}</button>
             {editing && (
               <button className="secondary" type="button" onClick={resetForm}>
                 Cancel
@@ -132,27 +191,31 @@ export default function InventoryPage({ snapshot, onChange }: { snapshot: Snapsh
       </div>
 
       <div className="section">
-        <h3>Inventory</h3>
-        <div className="form-grid" style={{ marginBottom: 12 }}>
+        <div className="section-head">
+          <h3>Stock List</h3>
+          <span className="pill">{filtered.length} items</span>
+        </div>
+
+        <div className="form-grid">
           <div>
             <label>Search</label>
-            <input value={search} onChange={e => setSearch(e.target.value)} />
+            <input value={search} onChange={event => setSearch(event.target.value)} />
           </div>
           <div>
             <label>Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value)}>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>
-                  {cat === "all" ? "All" : cat}
+            <select value={category} onChange={event => setCategory(event.target.value)}>
+              {categories.map(item => (
+                <option key={item} value={item}>
+                  {item === "all" ? "All categories" : item}
                 </option>
               ))}
             </select>
           </div>
           <div>
-            <label>Low Stock</label>
-            <select value={lowOnly ? "low" : "all"} onChange={e => setLowOnly(e.target.value === "low")}>
-              <option value="all">All</option>
-              <option value="low">Low Only</option>
+            <label>Filter</label>
+            <select value={lowOnly ? "low" : "all"} onChange={event => setLowOnly(event.target.value === "low")}>
+              <option value="all">All stock</option>
+              <option value="low">Low stock only</option>
             </select>
           </div>
         </div>
@@ -172,20 +235,24 @@ export default function InventoryPage({ snapshot, onChange }: { snapshot: Snapsh
             {filtered.map(product => {
               const inv = inventoryMap.get(product.id);
               const low = inv ? inv.quantity <= inv.reorderLevel : false;
+
               return (
                 <tr key={product.id}>
-                  <td>{product.name}</td>
+                  <td>
+                    <strong>{product.name}</strong>
+                    <div className="muted">{product.category || "Uncategorized"}</div>
+                  </td>
                   <td>{product.barcode || "-"}</td>
                   <td>{formatMoney(product.price)}</td>
                   <td>{inv?.quantity ?? 0}</td>
                   <td>
                     <span className={`badge ${low ? "low" : "ok"}`}>{low ? "Low" : "OK"}</span>
                   </td>
-                  <td className="inline">
+                  <td className="action-row">
                     <button className="secondary" type="button" onClick={() => startEdit(product)}>
                       Edit
                     </button>
-                    <button className="secondary" type="button" onClick={() => handleDelete(product.id)}>
+                    <button className="secondary" type="button" onClick={() => handleArchive(product.id)}>
                       Archive
                     </button>
                   </td>
