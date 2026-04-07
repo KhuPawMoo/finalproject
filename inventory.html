@@ -1,83 +1,1111 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Simple Inventory Tracker</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Desk</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Sora:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg-1: #f6f1e8;
+      --bg-2: #efe1d1;
+      --ink: #1f1a17;
+      --muted: #6c5b50;
+      --brand: #c3562d;
+      --brand-2: #2f6f6d;
+      --card: #fff8ee;
+      --border: #e0d2c2;
+      --shadow: 0 14px 34px rgba(31, 26, 23, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial;
-      padding: 20px;
+      margin: 0;
+      font-family: "Sora", "Helvetica Neue", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(195, 86, 45, 0.18), transparent 45%),
+        radial-gradient(circle at 90% 20%, rgba(47, 111, 109, 0.16), transparent 50%),
+        linear-gradient(135deg, var(--bg-1), var(--bg-2));
+      min-height: 100vh;
     }
-    input, button {
-      padding: 8px;
-      margin: 5px;
+
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 60px;
     }
+
+    .hero {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+
+    .kicker {
+      text-transform: uppercase;
+      letter-spacing: 0.24em;
+      font-size: 12px;
+      color: var(--brand-2);
+      font-weight: 600;
+    }
+
+    h1 {
+      font-family: "Fraunces", serif;
+      font-size: clamp(32px, 4vw, 48px);
+      margin: 10px 0 12px;
+    }
+
+    .sub {
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 520px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+    }
+
+    .stat {
+      background: rgba(255, 248, 238, 0.9);
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      margin-bottom: 8px;
+    }
+
+    .stat strong {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+
+    .panel {
+      background: var(--card);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .panel-head h2 {
+      font-family: "Fraunces", serif;
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .panel-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn.primary {
+      background: var(--brand);
+      color: white;
+      box-shadow: 0 8px 20px rgba(195, 86, 45, 0.25);
+    }
+
+    .btn.secondary {
+      background: white;
+      color: var(--ink);
+      border: 1px solid var(--border);
+    }
+
+    .btn.ghost {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(31, 26, 23, 0.18);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    label {
+      font-weight: 600;
+    }
+
+    input, select {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: white;
+      font-family: "Sora", "Helvetica Neue", sans-serif;
+      font-size: 14px;
+    }
+
+    .inline {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .inline input {
+      flex: 1;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .status.success {
+      color: #1f5a44;
+      border-color: rgba(31, 90, 68, 0.4);
+      background: rgba(31, 90, 68, 0.1);
+    }
+
+    .status.warn {
+      color: #7a3a1f;
+      border-color: rgba(122, 58, 31, 0.4);
+      background: rgba(122, 58, 31, 0.1);
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: white;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
+      min-width: 720px;
     }
-    table, th, td {
-      border: 1px solid #999;
-    }
+
     th, td {
-      padding: 10px;
       text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    th {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(239, 225, 209, 0.6);
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .badge.good {
+      background: rgba(47, 111, 109, 0.15);
+      color: #1d4c4a;
+    }
+
+    .badge.low {
+      background: rgba(195, 86, 45, 0.18);
+      color: #6f2b15;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btns button {
+      border: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .action-btns .edit {
+      background: rgba(47, 111, 109, 0.15);
+      color: #1d4c4a;
+    }
+
+    .action-btns .delete {
+      background: rgba(195, 86, 45, 0.15);
+      color: #6f2b15;
+    }
+
+    .scan-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(31, 26, 23, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 10;
+    }
+
+    .scan-modal.open {
+      display: flex;
+    }
+
+    .scan-card {
+      background: white;
+      border-radius: 18px;
+      max-width: 520px;
+      width: 100%;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .scan-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .scan-body {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #111;
+    }
+
+    video {
+      width: 100%;
+      height: 320px;
+      object-fit: cover;
+    }
+
+    .scan-overlay {
+      position: absolute;
+      inset: 18% 12%;
+      border: 2px dashed rgba(255, 255, 255, 0.8);
+      border-radius: 16px;
+      pointer-events: none;
+    }
+
+    .scan-help {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 12px;
+      line-height: 1.4;
+    }
+
+    .empty-state {
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (max-width: 720px) {
+      .panel {
+        padding: 18px;
+      }
+
+      video {
+        height: 240px;
+      }
+
+      .panel-head {
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="app">
+    <header class="hero">
+      <div>
+        <p class="kicker">Store Inventory</p>
+        <h1>Inventory Desk</h1>
+        <p class="sub">Track stock, prices, and barcode scans from any device. Data stays in this browser so it works offline too.</p>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span>Products</span>
+          <strong id="statProducts">0</strong>
+        </div>
+        <div class="stat">
+          <span>Total Units</span>
+          <strong id="statUnits">0</strong>
+        </div>
+        <div class="stat">
+          <span>Inventory Value</span>
+          <strong id="statValue">$0.00</strong>
+        </div>
+        <div class="stat">
+          <span>Low Stock</span>
+          <strong id="statLow">0</strong>
+        </div>
+      </div>
+    </header>
 
-  <h2>🛒 My Shop Inventory</h2>
+    <main class="grid">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Add or Update Product</h2>
+          <div class="panel-actions">
+            <button class="btn ghost" type="button" id="clearForm">Clear Form</button>
+          </div>
+        </div>
+        <form id="productForm">
+          <div class="form-grid">
+            <div class="field">
+              <label for="barcode">Barcode</label>
+              <div class="inline">
+                <input id="barcode" type="text" placeholder="Scan or type">
+                <button class="btn secondary" type="button" id="scanButton">Scan</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="name">Product Name</label>
+              <input id="name" type="text" placeholder="e.g. Rice 5kg">
+            </div>
+            <div class="field">
+              <label for="category">Category</label>
+              <input id="category" type="text" placeholder="e.g. Groceries">
+            </div>
+            <div class="field">
+              <label for="price">Unit Price</label>
+              <input id="price" type="number" min="0" step="0.01" placeholder="0.00">
+            </div>
+            <div class="field">
+              <label for="quantity">Quantity</label>
+              <input id="quantity" type="number" min="0" step="1" placeholder="0">
+            </div>
+            <div class="field">
+              <label for="reorder">Reorder Level</label>
+              <input id="reorder" type="number" min="0" step="1" placeholder="5">
+            </div>
+          </div>
+          <div class="panel-actions" style="margin-top: 16px;">
+            <button class="btn primary" type="submit" id="saveButton">Add Product</button>
+            <button class="btn secondary" type="button" id="cancelEdit" style="display: none;">Cancel Edit</button>
+          </div>
+        </form>
+        <div class="status" id="status">Tip: You can paste a barcode from a USB scanner or use the camera scan button.</div>
+      </section>
 
-  <label>Product Name: <input type="text" id="productName"></label>
-  <label>Price: <input type="number" id="productPrice" step="0.01"></label>
-  <label>Quantity: <input type="number" id="productQty"></label>
-  <button onclick="addProduct()">Add Product</button>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Inventory List</h2>
+          <div class="panel-actions">
+            <button class="btn secondary" type="button" id="exportCsv">Export CSV</button>
+            <label class="btn secondary" for="importCsv">Import CSV</label>
+            <input id="importCsv" type="file" accept=".csv" style="display: none;">
+          </div>
+        </div>
 
-  <table id="productTable">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Name</th>
-        <th>Price</th>
-        <th>Qty</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- Products will appear here -->
-    </tbody>
-  </table>
+        <div class="filters">
+          <div class="field">
+            <label for="search">Search</label>
+            <input id="search" type="text" placeholder="Name, barcode, category">
+          </div>
+          <div class="field">
+            <label for="filterCategory">Category</label>
+            <select id="filterCategory"></select>
+          </div>
+          <div class="field">
+            <label for="sortBy">Sort By</label>
+            <select id="sortBy">
+              <option value="newest">Newest</option>
+              <option value="name">Name A-Z</option>
+              <option value="qty">Qty Low-High</option>
+              <option value="value">Value High-Low</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="lowThreshold">Low Stock Threshold</label>
+            <input id="lowThreshold" type="number" min="0" step="1" placeholder="5">
+          </div>
+          <div class="field">
+            <label for="currency">Currency</label>
+            <select id="currency">
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="JPY">JPY</option>
+              <option value="CAD">CAD</option>
+              <option value="AUD">AUD</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="showLowOnly">Low Stock Only</label>
+            <select id="showLowOnly">
+              <option value="all">Show All</option>
+              <option value="low">Low Stock Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Barcode</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="productBody"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState" style="display: none;">No products yet. Add your first item on the left.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="scan-modal" id="scanModal" aria-hidden="true">
+    <div class="scan-card">
+      <div class="scan-header">
+        <h3>Scan Barcode</h3>
+        <button class="btn ghost" type="button" id="closeScan">Close</button>
+      </div>
+      <div class="scan-body">
+        <video id="scanVideo" autoplay muted playsinline></video>
+        <div class="scan-overlay"></div>
+      </div>
+      <p class="scan-help">Camera scanning needs HTTPS or localhost. If it does not start, type the barcode or use a USB scanner.</p>
+    </div>
+  </div>
 
   <script>
-    let productCount = 0;
+    const STORAGE_KEY = "inventory.state.v1";
 
-    function addProduct() {
-      const name = document.getElementById('productName').value;
-      const price = document.getElementById('productPrice').value;
-      const qty = document.getElementById('productQty').value;
+    const state = {
+      products: [],
+      currency: "USD",
+      lowStockThreshold: 5
+    };
 
-      if (!name || !price || !qty) {
-        alert("Please fill all fields!");
+    let editingId = null;
+    let scanStream = null;
+    let scanning = false;
+    let scanFrame = null;
+    let barcodeDetector = null;
+
+    const elements = {
+      statProducts: document.getElementById("statProducts"),
+      statUnits: document.getElementById("statUnits"),
+      statValue: document.getElementById("statValue"),
+      statLow: document.getElementById("statLow"),
+      status: document.getElementById("status"),
+      form: document.getElementById("productForm"),
+      clearForm: document.getElementById("clearForm"),
+      cancelEdit: document.getElementById("cancelEdit"),
+      saveButton: document.getElementById("saveButton"),
+      barcode: document.getElementById("barcode"),
+      name: document.getElementById("name"),
+      category: document.getElementById("category"),
+      price: document.getElementById("price"),
+      quantity: document.getElementById("quantity"),
+      reorder: document.getElementById("reorder"),
+      search: document.getElementById("search"),
+      filterCategory: document.getElementById("filterCategory"),
+      sortBy: document.getElementById("sortBy"),
+      lowThreshold: document.getElementById("lowThreshold"),
+      currency: document.getElementById("currency"),
+      showLowOnly: document.getElementById("showLowOnly"),
+      productBody: document.getElementById("productBody"),
+      emptyState: document.getElementById("emptyState"),
+      exportCsv: document.getElementById("exportCsv"),
+      importCsv: document.getElementById("importCsv"),
+      scanButton: document.getElementById("scanButton"),
+      scanModal: document.getElementById("scanModal"),
+      scanVideo: document.getElementById("scanVideo"),
+      closeScan: document.getElementById("closeScan")
+    };
+
+    function loadState() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed.products)) {
+          state.products = parsed.products.map(normalizeProduct);
+        }
+        if (parsed.currency) state.currency = parsed.currency;
+        if (Number.isFinite(parsed.lowStockThreshold)) state.lowStockThreshold = parsed.lowStockThreshold;
+      } catch (error) {
+        console.warn("Unable to load saved inventory", error);
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        products: state.products,
+        currency: state.currency,
+        lowStockThreshold: state.lowStockThreshold
+      }));
+    }
+
+    function normalizeProduct(product) {
+      return {
+        id: product.id || generateId(),
+        barcode: String(product.barcode || "").trim(),
+        name: String(product.name || "").trim(),
+        category: String(product.category || "").trim(),
+        price: toNumber(product.price),
+        qty: toNumber(product.qty),
+        reorderLevel: Number.isFinite(product.reorderLevel) ? Number(product.reorderLevel) : state.lowStockThreshold,
+        updatedAt: product.updatedAt || Date.now()
+      };
+    }
+
+    function generateId() {
+      if (window.crypto && window.crypto.randomUUID) {
+        return window.crypto.randomUUID();
+      }
+      return "id-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
+    }
+
+    function toNumber(value) {
+      const num = Number(value);
+      return Number.isFinite(num) ? num : 0;
+    }
+
+    function formatMoney(value) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: state.currency
+      }).format(value);
+    }
+
+    function isLowStock(product) {
+      const threshold = Number.isFinite(product.reorderLevel) ? product.reorderLevel : state.lowStockThreshold;
+      return product.qty <= threshold;
+    }
+
+    function setStatus(message, tone) {
+      elements.status.textContent = message;
+      elements.status.className = "status" + (tone ? " " + tone : "");
+    }
+
+    function resetForm() {
+      editingId = null;
+      elements.form.reset();
+      elements.reorder.value = state.lowStockThreshold;
+      elements.saveButton.textContent = "Add Product";
+      elements.cancelEdit.style.display = "none";
+      setStatus("Tip: You can paste a barcode from a USB scanner or use the camera scan button.");
+    }
+
+    function fillForm(product) {
+      elements.barcode.value = product.barcode;
+      elements.name.value = product.name;
+      elements.category.value = product.category;
+      elements.price.value = product.price;
+      elements.quantity.value = product.qty;
+      elements.reorder.value = product.reorderLevel;
+    }
+
+    function handleSubmit(event) {
+      event.preventDefault();
+
+      const name = elements.name.value.trim();
+      const priceRaw = elements.price.value.trim();
+      const qtyRaw = elements.quantity.value.trim();
+      const reorderRaw = elements.reorder.value.trim();
+      const price = toNumber(priceRaw);
+      const qty = toNumber(qtyRaw);
+
+      if (!name || priceRaw === "" || qtyRaw === "" || price < 0 || qty < 0) {
+        setStatus("Please enter a product name, price, and quantity.", "warn");
         return;
       }
 
-      productCount++;
-      const table = document.getElementById('productTable').getElementsByTagName('tbody')[0];
-      const row = table.insertRow();
+      const reorderLevel = reorderRaw === "" ? state.lowStockThreshold : toNumber(reorderRaw);
 
-      row.innerHTML = `
-        <td>${productCount}</td>
-        <td>${name}</td>
-        <td>${parseFloat(price).toFixed(2)}</td>
-        <td>${qty}</td>
-      `;
+      const product = normalizeProduct({
+        id: editingId || generateId(),
+        barcode: elements.barcode.value.trim(),
+        name,
+        category: elements.category.value.trim(),
+        price,
+        qty,
+        reorderLevel,
+        updatedAt: Date.now()
+      });
 
-      // Clear input
-      document.getElementById('productName').value = "";
-      document.getElementById('productPrice').value = "";
-      document.getElementById('productQty').value = "";
+      if (editingId) {
+        state.products = state.products.map(item => item.id === editingId ? product : item);
+        setStatus("Product updated.", "success");
+      } else {
+        state.products.unshift(product);
+        setStatus("Product added.", "success");
+      }
+
+      saveState();
+      resetForm();
+      renderAll();
     }
-  </script>
 
+    function handleEdit(productId) {
+      const product = state.products.find(item => item.id === productId);
+      if (!product) return;
+      editingId = productId;
+      fillForm(product);
+      elements.saveButton.textContent = "Save Changes";
+      elements.cancelEdit.style.display = "inline-flex";
+      setStatus("Editing product. Update fields and save.");
+    }
+
+    function handleDelete(productId) {
+      const product = state.products.find(item => item.id === productId);
+      if (!product) return;
+      const confirmDelete = confirm("Delete " + product.name + "?");
+      if (!confirmDelete) return;
+      state.products = state.products.filter(item => item.id !== productId);
+      saveState();
+      renderAll();
+      setStatus("Product deleted.", "warn");
+    }
+
+    function applyFilters(items) {
+      const query = elements.search.value.trim().toLowerCase();
+      const category = elements.filterCategory.value;
+      const sortBy = elements.sortBy.value;
+      const showLowOnly = elements.showLowOnly.value === "low";
+
+      let filtered = items.filter(product => {
+        const matchesQuery = !query ||
+          product.name.toLowerCase().includes(query) ||
+          product.barcode.toLowerCase().includes(query) ||
+          product.category.toLowerCase().includes(query);
+        const matchesCategory = category === "all" || product.category === category;
+        const matchesLow = !showLowOnly || isLowStock(product);
+        return matchesQuery && matchesCategory && matchesLow;
+      });
+
+      if (sortBy === "name") {
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+      } else if (sortBy === "qty") {
+        filtered.sort((a, b) => a.qty - b.qty);
+      } else if (sortBy === "value") {
+        filtered.sort((a, b) => (b.price * b.qty) - (a.price * a.qty));
+      }
+
+      return filtered;
+    }
+
+    function renderTable() {
+      const filtered = applyFilters(state.products);
+      elements.productBody.innerHTML = "";
+      if (filtered.length === 0) {
+        elements.emptyState.style.display = "block";
+        return;
+      }
+      elements.emptyState.style.display = "none";
+
+      filtered.forEach(product => {
+        const row = document.createElement("tr");
+
+        const cells = [
+          product.barcode || "-",
+          product.name,
+          product.category || "-",
+          formatMoney(product.price),
+          String(product.qty),
+          formatMoney(product.price * product.qty)
+        ];
+
+        cells.forEach(value => {
+          const cell = document.createElement("td");
+          cell.textContent = value;
+          row.appendChild(cell);
+        });
+
+        const statusCell = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = "badge " + (isLowStock(product) ? "low" : "good");
+        badge.textContent = isLowStock(product) ? "Low" : "OK";
+        statusCell.appendChild(badge);
+        row.appendChild(statusCell);
+
+        const actionCell = document.createElement("td");
+        const actions = document.createElement("div");
+        actions.className = "action-btns";
+
+        const editBtn = document.createElement("button");
+        editBtn.className = "edit";
+        editBtn.textContent = "Edit";
+        editBtn.dataset.action = "edit";
+        editBtn.dataset.id = product.id;
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.dataset.action = "delete";
+        deleteBtn.dataset.id = product.id;
+
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
+        actionCell.appendChild(actions);
+        row.appendChild(actionCell);
+
+        elements.productBody.appendChild(row);
+      });
+    }
+
+    function renderCategories() {
+      const categories = ["all"].concat(
+        Array.from(new Set(state.products.map(product => product.category).filter(Boolean))).sort()
+      );
+      const current = elements.filterCategory.value || "all";
+      elements.filterCategory.innerHTML = "";
+      categories.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category === "all" ? "All" : category;
+        elements.filterCategory.appendChild(option);
+      });
+      if (categories.includes(current)) {
+        elements.filterCategory.value = current;
+      }
+    }
+
+    function renderStats() {
+      const totalProducts = state.products.length;
+      const totalUnits = state.products.reduce((sum, product) => sum + product.qty, 0);
+      const totalValue = state.products.reduce((sum, product) => sum + (product.price * product.qty), 0);
+      const lowCount = state.products.filter(isLowStock).length;
+
+      elements.statProducts.textContent = totalProducts;
+      elements.statUnits.textContent = totalUnits;
+      elements.statValue.textContent = formatMoney(totalValue);
+      elements.statLow.textContent = lowCount;
+    }
+
+    function renderAll() {
+      renderCategories();
+      renderTable();
+      renderStats();
+    }
+
+    function exportCSV() {
+      if (state.products.length === 0) {
+        setStatus("No products to export.", "warn");
+        return;
+      }
+      const headers = ["barcode", "name", "category", "price", "qty", "reorderLevel"];
+      const lines = [headers.join(",")];
+      state.products.forEach(product => {
+        const line = headers.map(header => csvEscape(String(product[header] ?? ""))).join(",");
+        lines.push(line);
+      });
+
+      const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "inventory.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setStatus("CSV exported.", "success");
+    }
+
+    function csvEscape(value) {
+      if (value.includes(",") || value.includes("\"")) {
+        return '"' + value.replace(/\"/g, '""') + '"';
+      }
+      return value;
+    }
+
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (inQuotes) {
+          if (char === '"' && next === '"') {
+            value += '"';
+            i++;
+          } else if (char === '"') {
+            inQuotes = false;
+          } else {
+            value += char;
+          }
+        } else {
+          if (char === '"') {
+            inQuotes = true;
+          } else if (char === ",") {
+            row.push(value);
+            value = "";
+          } else if (char === "\n") {
+            row.push(value);
+            rows.push(row);
+            row = [];
+            value = "";
+          } else if (char !== "\r") {
+            value += char;
+          }
+        }
+      }
+      if (value.length || row.length) {
+        row.push(value);
+        rows.push(row);
+      }
+      return rows;
+    }
+
+    function importCSV(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = String(reader.result || "").trim();
+        if (!text) {
+          setStatus("CSV file was empty.", "warn");
+          return;
+        }
+
+        const rows = parseCSV(text);
+        if (!rows.length) {
+          setStatus("Could not read CSV.", "warn");
+          return;
+        }
+
+        const headers = rows[0].map(cell => cell.trim().toLowerCase());
+        const hasHeader = headers.includes("name") || headers.includes("barcode");
+        const startIndex = hasHeader ? 1 : 0;
+        const columns = hasHeader ? headers : ["barcode", "name", "category", "price", "qty", "reorderlevel"];
+
+        const imported = [];
+        for (let i = startIndex; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row.length) continue;
+          const record = {};
+          columns.forEach((key, index) => {
+            record[key] = row[index] ?? "";
+          });
+          if (!record.name) continue;
+          imported.push(normalizeProduct({
+            barcode: record.barcode,
+            name: record.name,
+            category: record.category,
+            price: record.price,
+            qty: record.qty,
+            reorderLevel: record.reorderlevel
+          }));
+        }
+
+        if (imported.length === 0) {
+          setStatus("No valid products found in CSV.", "warn");
+          return;
+        }
+
+        state.products = imported.concat(state.products);
+        saveState();
+        renderAll();
+        setStatus("Imported " + imported.length + " products.", "success");
+        event.target.value = "";
+      };
+      reader.readAsText(file);
+    }
+
+    function updateLowThreshold() {
+      const value = toNumber(elements.lowThreshold.value);
+      state.lowStockThreshold = value;
+      saveState();
+      renderAll();
+    }
+
+    function updateCurrency() {
+      state.currency = elements.currency.value;
+      saveState();
+      renderAll();
+    }
+
+    async function startScan() {
+      if (!("BarcodeDetector" in window)) {
+        setStatus("Barcode scanning is not supported on this browser. Type the barcode instead.", "warn");
+        return;
+      }
+
+      try {
+        barcodeDetector = new BarcodeDetector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "qr_code"]
+        });
+      } catch (error) {
+        setStatus("Barcode detector failed to start.", "warn");
+        return;
+      }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setStatus("Camera access is not available in this browser.", "warn");
+        return;
+      }
+
+      try {
+        scanStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }
+        });
+      } catch (error) {
+        setStatus("Camera access denied or unavailable.", "warn");
+        return;
+      }
+
+      elements.scanVideo.srcObject = scanStream;
+      elements.scanModal.classList.add("open");
+      elements.scanModal.setAttribute("aria-hidden", "false");
+      scanning = true;
+      scanLoop();
+    }
+
+    async function scanLoop() {
+      if (!scanning || !barcodeDetector) return;
+
+      if (elements.scanVideo.readyState >= 2) {
+        try {
+          const barcodes = await barcodeDetector.detect(elements.scanVideo);
+          if (barcodes.length) {
+            const value = barcodes[0].rawValue || "";
+            if (value) {
+              elements.barcode.value = value;
+              setStatus("Barcode captured: " + value, "success");
+              stopScan();
+              return;
+            }
+          }
+        } catch (error) {
+          console.warn("Scan error", error);
+        }
+      }
+
+      scanFrame = requestAnimationFrame(scanLoop);
+    }
+
+    function stopScan() {
+      scanning = false;
+      if (scanFrame) {
+        cancelAnimationFrame(scanFrame);
+        scanFrame = null;
+      }
+      if (scanStream) {
+        scanStream.getTracks().forEach(track => track.stop());
+        scanStream = null;
+      }
+      elements.scanModal.classList.remove("open");
+      elements.scanModal.setAttribute("aria-hidden", "true");
+    }
+
+    function bindEvents() {
+      elements.form.addEventListener("submit", handleSubmit);
+      elements.clearForm.addEventListener("click", resetForm);
+      elements.cancelEdit.addEventListener("click", resetForm);
+      elements.search.addEventListener("input", renderTable);
+      elements.filterCategory.addEventListener("change", renderTable);
+      elements.sortBy.addEventListener("change", renderTable);
+      elements.showLowOnly.addEventListener("change", renderTable);
+      elements.lowThreshold.addEventListener("change", updateLowThreshold);
+      elements.currency.addEventListener("change", updateCurrency);
+      elements.exportCsv.addEventListener("click", exportCSV);
+      elements.importCsv.addEventListener("change", importCSV);
+      elements.scanButton.addEventListener("click", startScan);
+      elements.closeScan.addEventListener("click", stopScan);
+      elements.scanModal.addEventListener("click", event => {
+        if (event.target === elements.scanModal) stopScan();
+      });
+
+      elements.productBody.addEventListener("click", event => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+        if (!action || !id) return;
+        if (action === "edit") handleEdit(id);
+        if (action === "delete") handleDelete(id);
+      });
+    }
+
+    function init() {
+      loadState();
+      elements.lowThreshold.value = state.lowStockThreshold;
+      elements.currency.value = state.currency;
+      resetForm();
+      bindEvents();
+      renderAll();
+    }
+
+    init();
+  </script>
 </body>
 </html>

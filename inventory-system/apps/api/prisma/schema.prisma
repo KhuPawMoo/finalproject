@@ -1,0 +1,98 @@
+// Prisma schema for inventory system
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+enum StockReason {
+  SALE
+  RESTOCK
+  ADJUSTMENT
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(STAFF)
+  createdAt    DateTime @default(now())
+  sales        Sale[]
+  stockMoves   StockMovement[]
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  name      String
+  barcode   String?  @unique
+  price     Decimal  @db.Decimal(10, 2)
+  category  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventory Inventory?
+  saleItems SaleItem[]
+  stockMoves StockMovement[]
+
+  @@index([name])
+}
+
+model Inventory {
+  productId    String   @id
+  product      Product  @relation(fields: [productId], references: [id])
+  quantity     Int      @default(0)
+  reorderLevel Int      @default(5)
+  updatedAt    DateTime @updatedAt
+}
+
+model Sale {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  total         Decimal  @db.Decimal(10, 2)
+  paidAmount    Decimal  @db.Decimal(10, 2)
+  changeAmount  Decimal  @db.Decimal(10, 2)
+  paymentMethod String   @default("cash")
+  createdAt     DateTime @default(now())
+  items         SaleItem[]
+
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id        String   @id @default(uuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  lineTotal Decimal  @db.Decimal(10, 2)
+
+  sale    Sale    @relation(fields: [saleId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+model StockMovement {
+  id        String      @id @default(uuid())
+  productId String
+  userId    String?
+  delta     Int
+  reason    StockReason
+  createdAt DateTime    @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+}
