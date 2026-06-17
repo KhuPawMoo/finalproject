@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin Dashboard - Shop Price DB</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/admin.js" defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Product management</p>
+        <h1>Admin Dashboard</h1>
+      </div>
+      <div class="header-actions">
+        <a class="secondary-button" href="/">Lookup</a>
+        <button id="logout-button" class="secondary-button hidden" type="button">Log Out</button>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section id="login-panel" class="admin-panel narrow-panel">
+        <h2>Admin Login</h2>
+        <form id="login-form" class="stacked-form">
+          <label class="field-label" for="username">Username</label>
+          <input id="username" class="text-input" name="username" autocomplete="username" required>
+
+          <label class="field-label" for="password">Password</label>
+          <input id="password" class="text-input" name="password" type="password" autocomplete="current-password" required>
+
+          <button class="primary-button" type="submit">Log In</button>
+          <p id="login-message" class="form-message" role="alert"></p>
+        </form>
+      </section>
+
+      <section id="dashboard-panel" class="admin-layout hidden">
+        <div class="admin-panel">
+          <div class="section-bar">
+            <h2 id="form-title">Add Product</h2>
+            <button id="cancel-edit-button" class="secondary-button hidden" type="button">Cancel Edit</button>
+          </div>
+
+          <form id="product-form" class="stacked-form">
+            <input id="product-id" type="hidden">
+
+            <label class="field-label" for="product-name">Product name</label>
+            <input id="product-name" class="text-input" name="product_name" autocomplete="off" required>
+
+            <label class="field-label" for="product-category">Category</label>
+            <select id="product-category" class="text-input" name="category"></select>
+
+            <label class="field-label" for="product-price">Price</label>
+            <input id="product-price" class="text-input" name="price" type="number" min="0" step="0.01" inputmode="decimal" required>
+
+            <button id="save-product-button" class="primary-button" type="submit">Add Product</button>
+            <p id="form-message" class="form-message" role="status"></p>
+          </form>
+        </div>
+
+        <div class="admin-panel">
+          <div class="section-bar">
+            <h2>Products</h2>
+            <span id="admin-count" class="muted-text">Loading</span>
+          </div>
+          <div class="search-grid compact">
+            <input id="admin-search" class="search-input" type="search" placeholder="Search products" autocomplete="off">
+            <select id="admin-category-filter" class="select-input" aria-label="Category filter"></select>
+          </div>
+          <div id="admin-products" class="admin-product-list" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

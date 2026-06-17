@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shop Price Lookup</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Internal price database</p>
+        <h1>Price Lookup</h1>
+      </div>
+      <a class="secondary-button" href="/admin">Admin</a>
+    </header>
+
+    <main class="page-shell">
+      <section class="search-panel" aria-label="Product search">
+        <label class="field-label" for="product-search">Product name</label>
+        <div class="search-grid">
+          <input id="product-search" class="search-input" type="search" placeholder="Search products" autocomplete="off" autofocus>
+          <select id="category-filter" class="select-input" aria-label="Category filter"></select>
+        </div>
+      </section>
+
+      <section class="results-section" aria-label="Current prices">
+        <div class="section-bar">
+          <h2>Current Prices</h2>
+          <span id="result-count" class="muted-text">Loading</span>
+        </div>
+        <div id="products" class="product-list" aria-live="polite"></div>
+      </section>
+    </main>
+  </body>
+</html>
