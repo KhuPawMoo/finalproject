@@ -108,6 +108,46 @@ ADMIN_PASSWORD=choose-a-strong-password
 SESSION_SECRET=choose-a-long-random-secret
 ```
 
+## Secure One-Admin Setup
+
+The system is designed for one admin account. Employees can search prices without logging in, but only the admin can add, edit, update, or delete products.
+
+For better security, store a password hash instead of the real password:
+
+```bash
+npm run admin:hash
+```
+
+Enter the admin username and password when prompted. The password is not printed on screen. The command prints lines like this:
+
+```text
+ADMIN_USERNAME=owner
+ADMIN_PASSWORD_HASH=scrypt$...
+SESSION_SECRET=...
+```
+
+Put those lines in `.env`, then remove the plain `ADMIN_PASSWORD` line. When `ADMIN_PASSWORD_HASH` exists, it is used instead of `ADMIN_PASSWORD`.
+
+Recommended `.env` admin settings:
+
+```text
+ADMIN_USERNAME=owner
+ADMIN_PASSWORD_HASH=scrypt$...
+SESSION_SECRET=long-generated-secret
+```
+
+Lock the `.env` file so other local computer users cannot casually open it:
+
+```bash
+chmod 600 .env
+```
+
+Important limits:
+
+- Other employees cannot manage products unless they know the admin login.
+- Anyone with full access to the server computer can still change files, replace the database, or reset the app.
+- Keep the shop computer login protected and do not share the admin password.
+
 Start the app:
 
 ```bash

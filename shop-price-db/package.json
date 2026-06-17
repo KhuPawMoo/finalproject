@@ -5,6 +5,7 @@
   "private": true,
   "main": "src/server.js",
   "scripts": {
+    "admin:hash": "node src/create-admin-hash.js",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "SEED_DEMO_PRODUCTS=true node src/server.js --seed-only"

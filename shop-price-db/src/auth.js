@@ -2,6 +2,13 @@ const crypto = require('node:crypto');
 
 const COOKIE_NAME = 'shop_price_admin';
 const SESSION_LENGTH_MS = 1000 * 60 * 60 * 10;
+const SCRYPT_KEY_LENGTH = 64;
+const SCRYPT_OPTIONS = {
+  N: 16384,
+  r: 8,
+  p: 1,
+  maxmem: 32 * 1024 * 1024
+};
 
 function base64Url(input) {
   return Buffer.from(input).toString('base64url');
@@ -20,6 +27,36 @@ function timingSafeEqual(left, right) {
   }
 
   return crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('base64url');
+  const hash = crypto.scryptSync(String(password), salt, SCRYPT_KEY_LENGTH, SCRYPT_OPTIONS).toString('base64url');
+
+  return `scrypt$${SCRYPT_OPTIONS.N}$${SCRYPT_OPTIONS.r}$${SCRYPT_OPTIONS.p}$${salt}$${hash}`;
+}
+
+function verifyPasswordHash(password, storedHash) {
+  const [algorithm, cost, blockSize, parallelization, salt, expectedHash] = String(storedHash || '').split('$');
+
+  if (algorithm !== 'scrypt' || !cost || !blockSize || !parallelization || !salt || !expectedHash) {
+    return false;
+  }
+
+  let hash;
+
+  try {
+    hash = crypto.scryptSync(String(password), salt, SCRYPT_KEY_LENGTH, {
+      N: Number(cost),
+      r: Number(blockSize),
+      p: Number(parallelization),
+      maxmem: 32 * 1024 * 1024
+    }).toString('base64url');
+  } catch {
+    return false;
+  }
+
+  return timingSafeEqual(hash, expectedHash);
 }
 
 function parseCookies(cookieHeader = '') {
@@ -83,11 +120,17 @@ function clearCookieOptions() {
 
 function createAuth() {
   const username = process.env.ADMIN_USERNAME || 'admin';
+  const passwordHash = process.env.ADMIN_PASSWORD_HASH || '';
   const password = process.env.ADMIN_PASSWORD || 'change-this-password';
   const secret = process.env.SESSION_SECRET || 'development-secret-change-me';
 
   function authenticate(inputUsername, inputPassword) {
-    return timingSafeEqual(inputUsername, username) && timingSafeEqual(inputPassword, password);
+    const usernameMatches = timingSafeEqual(inputUsername, username);
+    const passwordMatches = passwordHash
+      ? verifyPasswordHash(inputPassword, passwordHash)
+      : timingSafeEqual(inputPassword, password);
+
+    return usernameMatches && passwordMatches;
   }
 
   function currentSession(req) {
@@ -139,4 +182,8 @@ function createAuth() {
   };
 }
 
-module.exports = { createAuth };
+module.exports = {
+  createAuth,
+  hashPassword,
+  verifyPasswordHash
+};
