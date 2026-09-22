@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CryptoPredictor{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('main.index') }}">Crypto<span>Predictor</span></a>
+    <nav>
+      <a href="{{ url_for('main.index', symbol=selected_symbol|default('BTCUSDT')) }}">Dashboard</a>
+      <a href="{{ url_for('main.news_page', symbol=selected_symbol|default('BTCUSDT')) }}">News</a>
+      <a href="{{ url_for('main.predictions_page', symbol=selected_symbol|default('BTCUSDT')) }}">Prediction history</a>
+    </nav>
+  </header>
+  <main class="page-shell">
+    {% block content %}{% endblock %}
+  </main>
+  <footer>Analysis and education only — not investment advice. Crypto markets are volatile and model estimates can be wrong.</footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
+

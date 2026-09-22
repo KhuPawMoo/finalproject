@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}CryptoPredictor News{% endblock %}
+{% block content %}
+<section class="page-heading"><p class="eyebrow">STORED NEWS</p><h1>Relevant {{ selected_symbol }} market context</h1><p>Sentiment is a transparent language signal, not a claim that news caused a price movement.</p></section>
+<form class="filter-form" method="get"><label>Pair <select name="symbol">{% for symbol, name in symbols.items() %}<option value="{{ symbol }}" {% if symbol == selected_symbol %}selected{% endif %}>{{ symbol }} — {{ name }}</option>{% endfor %}</select></label><button class="secondary">Show</button></form>
+<section class="article-grid">
+{% for article in articles %}
+  <article class="news-card">
+    <div class="news-meta"><span class="sentiment {{ article.sentiment|lower }}">{{ article.sentiment }}</span><span class="impact">{{ article.impact }} impact</span></div>
+    <h2><a href="{{ article.url }}" target="_blank" rel="noopener noreferrer">{{ article.title }}</a></h2>
+    <p class="muted">{{ article.source }} · {{ article.published_at }}</p>
+    {% if article.summary %}<p>{{ article.summary }}</p>{% endif %}
+    <p class="impact-reason">{{ article.impact_reason }}</p>
+    {% if article.price_at_publication %}<p class="news-outcome">Price near publication: {{ "%.4f"|format(article.price_at_publication) }}{% if article.price_after_4h %} · after 4h: {{ "%.4f"|format(article.price_after_4h) }}{% endif %}</p>{% endif %}
+  </article>
+{% else %}
+  <p class="empty">No articles are stored yet. Return to the dashboard and use “Refresh market data & news.”</p>
+{% endfor %}
+</section>
+{% endblock %}
+

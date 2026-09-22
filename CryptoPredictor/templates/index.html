@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}CryptoPredictor Dashboard{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <p class="eyebrow">LOCAL MARKET RESEARCH</p>
+    <h1>Make crypto data easier to understand.</h1>
+    <p class="subtitle">Historical prices, transparent indicators, relevant news, and cautious range estimates — all stored locally in SQLite.</p>
+  </div>
+  <div class="controls card">
+    <label for="symbol-select">Cryptocurrency pair</label>
+    <div class="control-row">
+      <select id="symbol-select" aria-label="Cryptocurrency pair">
+        {% for symbol, name in symbols.items() %}
+          <option value="{{ symbol }}" {% if symbol == selected_symbol %}selected{% endif %}>{{ symbol }} — {{ name }}</option>
+        {% endfor %}
+      </select>
+      <input id="custom-symbol" placeholder="e.g. DOGEUSDT" aria-label="Custom Binance trading pair">
+      <button id="use-custom" class="secondary">Use pair</button>
+    </div>
+    <small>Any valid Binance spot pair can be entered. Data availability is checked when refreshed.</small>
+  </div>
+</section>
+
+<section class="action-row">
+  <button id="refresh-button" class="primary">Refresh market data & news</button>
+  <button id="analyze-button" class="secondary">Train models & create ranges</button>
+  <span id="status-message" class="status">Showing locally stored data. Refresh to begin.</span>
+</section>
+
+<section class="stats-grid" aria-label="Current market statistics">
+  <article class="stat-card"><span>Current price</span><strong id="current-price">—</strong><small id="data-source">No data yet</small></article>
+  <article class="stat-card"><span>24h change</span><strong id="change-24h">—</strong><small>Actual Binance ticker</small></article>
+  <article class="stat-card"><span>24h high / low</span><strong id="high-low">—</strong><small>Actual Binance ticker</small></article>
+  <article class="stat-card"><span>24h volume</span><strong id="volume-24h">—</strong><small id="updated-time">Not updated yet</small></article>
+</section>
+
+<section class="dashboard-grid">
+  <article class="panel chart-panel">
+    <div class="panel-heading">
+      <div><p class="eyebrow">PRICE ACTION</p><h2 id="chart-title">BTCUSDT chart</h2></div>
+      <div class="timeframe-buttons" id="timeframe-buttons">
+        <button data-interval="1h" class="active">1H</button>
+        <button data-interval="4h">4H</button>
+        <button data-interval="1d">1D</button>
+        <button data-interval="15m">15M</button>
+      </div>
+    </div>
+    <div id="price-chart" class="chart" aria-label="Interactive candlestick chart"></div>
+    <p class="chart-key">Candles • Volume • EMA 20 / 50 / 200 • Recent support / resistance</p>
+  </article>
+
+  <aside class="panel analysis-panel">
+    <p class="eyebrow">COMBINED MARKET ANALYSIS</p>
+    <h2 id="market-trend">Waiting for data</h2>
+    <div class="pill-grid">
+      <span>Volatility <b id="volatility">—</b></span>
+      <span>News <b id="news-sentiment">—</b></span>
+      <span>RSI <b id="rsi-value">—</b></span>
+      <span>MACD <b id="macd-value">—</b></span>
+    </div>
+    <p id="analysis-why" class="explanation">Refresh market data to create an analysis from actual stored observations.</p>
+    <p id="prediction-note" class="muted"></p>
+  </aside>
+</section>
+
+<section class="two-column">
+  <article class="panel">
+    <div class="panel-heading"><div><p class="eyebrow">TECHNICAL INDICATORS</p><h2>What the chart is saying</h2></div></div>
+    <div id="indicator-values" class="indicator-table"></div>
+    <ul id="technical-explanations" class="explanation-list"></ul>
+  </article>
+  <article class="panel">
+    <div class="panel-heading"><div><p class="eyebrow">MODEL SCENARIOS</p><h2>Possible future ranges</h2></div></div>
+    <div id="prediction-list" class="prediction-list"><p class="empty">Refresh 1-hour data, then train models to generate estimates.</p></div>
+  </article>
+</section>
+
+<section class="two-column">
+  <article class="panel">
+    <div class="panel-heading"><div><p class="eyebrow">RELEVANT NEWS</p><h2>Recent market context</h2></div><a id="more-news" href="/news">View all</a></div>
+    <div id="news-list" class="news-list"><p class="empty">No relevant news stored yet.</p></div>
+  </article>
+  <article class="panel">
+    <div class="panel-heading"><div><p class="eyebrow">MODEL CHECK</p><h2>Time-based holdout performance</h2></div></div>
+    <div id="performance-list" class="performance-list"><p class="empty">Performance appears after a model is trained. Older predictions are evaluated as matching candles arrive.</p></div>
+  </article>
+</section>
+
+<section class="disclaimer panel">
+  <h2>How to read this dashboard</h2>
+  <p>Prices and ticker values are actual market data. Indicators summarize historic price movement. News labels use a simple inspectable word-based classifier. Predictions are model estimates shown as scenarios, not promises or trading instructions.</p>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>window.CryptoPredictor = { initialSymbol: {{ selected_symbol|tojson }}, intervals: {{ intervals|tojson }} };</script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
+
